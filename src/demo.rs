@@ -2,27 +2,34 @@
 // Copyright Adam Greig <adam@adamgreig.com> 2014
 // Licensed under MIT license
 
+use std::io::{self, Write};
+
 extern crate hackrf;
 
 fn main() {
     hackrf::init().unwrap();
-    
+
     println!("Opening device.");
     let mut device = hackrf::open().unwrap();
 
     let board_id = hackrf::board_id_read(&mut device).unwrap();
-    println!("Board ID: {}", board_id);
-    
+    println!("Board ID: {}", board_id.0);
+
     let board_version = hackrf::version_string_read(&mut device).unwrap();
     println!("Board version: {}", board_version);
 
     let serial = hackrf::board_partid_serialno_read(&mut device);
     let (partid, serialno) = serial.unwrap();
-    println!("Board part ID {}, serial number {}", partid, serialno);
+    println!("Board part ID {:?}, serial number {:?}", partid, serialno);
 
     println!("Tuning to IF 2.2GHz, LO 100MHz, filter bypass");
-    hackrf::set_freq_explicit(&mut device, 2_200_000_000, 100_000_000,
-                              hackrf::RFPathFilter::Bypass).unwrap();
+    hackrf::set_freq_explicit(
+        &mut device,
+        2_200_000_000,
+        100_000_000,
+        hackrf::RFPathFilter::Bypass,
+    )
+    .unwrap();
 
     println!("Tuning to 434MHz");
     hackrf::set_freq(&mut device, 434_000_000).unwrap();
@@ -55,12 +62,12 @@ fn main() {
     println!("bw2={}", bw2);
 
     println!("Setting up RX stream");
-    let mut rx_cb = |_: &[u8]| -> bool {
+    let mut rx_cb = |buf: &[u8]| -> bool {
         println!("rx cb");
         true
     };
     hackrf::start_rx(&mut device, &mut rx_cb).unwrap();
-    std::io::timer::sleep(std::time::duration::Duration::milliseconds(200));
+    std::thread::sleep(std::time::Duration::from_millis(200));
     println!("Stopping RX stream");
     hackrf::stop_rx(&mut device).unwrap();
 
@@ -68,14 +75,13 @@ fn main() {
     hackrf::close(device).unwrap();
     let mut device = hackrf::open().unwrap();
 
-
     println!("Setting up TX stream");
-    let mut tx_cb = |_: &mut[u8]| -> bool {
-        println!("tx cb");
+    let mut tx_cb = |_: &mut [u8]| -> bool {
+        println!("tx cb called");
         true
     };
     hackrf::start_tx(&mut device, &mut tx_cb).unwrap();
-    std::io::timer::sleep(std::time::duration::Duration::milliseconds(200));
+    std::thread::sleep(std::time::Duration::from_millis(200));
     println!("Stopping TX stream");
     hackrf::stop_tx(&mut device).unwrap();
 

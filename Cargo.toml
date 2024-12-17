@@ -26,3 +26,6 @@ test = false
 doctest = false
 bench = false
 doc = false
+
+[dependencies]
+ffi = "0.1.1"
